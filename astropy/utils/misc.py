@@ -535,8 +535,7 @@ class InheritDocstrings(type):
                     super_method = getattr(base, key, None)
                     if super_method is not None:
                         if isinstance(val, property):
-                            if val.fget and val.fget.__doc__ is None:
-                                val.fget.__doc__ = super_method.__doc__
+                            # Always create a new property with the inherited docstring
                             dct[key] = property(val.fget, val.fset, val.fdel, super_method.__doc__)
                         else:
                             val.__doc__ = super_method.__doc__
