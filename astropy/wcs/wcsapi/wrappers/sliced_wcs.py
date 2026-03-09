@@ -246,12 +246,17 @@ class SlicedLowLevelWCS(BaseWCSWrapper):
         world_arrays = tuple(map(np.asanyarray, world_arrays))
         world_arrays_new = []
         iworld_curr = -1
+        # Compute the world coordinate values at the fixed pixel positions for
+        # the dropped axes. This is needed so that when the PC matrix couples
+        # kept and dropped axes, the inverse transform receives the correct world
+        # value for the dropped axis rather than an arbitrary constant.
+        world_arrays_fixed = self._pixel_to_world_values_all(*[0]*len(self._pixel_keep))
         for iworld in range(self._wcs.world_n_dim):
             if iworld in self._world_keep:
                 iworld_curr += 1
                 world_arrays_new.append(world_arrays[iworld_curr])
             else:
-                world_arrays_new.append(1.)
+                world_arrays_new.append(world_arrays_fixed[iworld])
 
         world_arrays_new = np.broadcast_arrays(*world_arrays_new)
         pixel_arrays = list(self._wcs.world_to_pixel_values(*world_arrays_new))

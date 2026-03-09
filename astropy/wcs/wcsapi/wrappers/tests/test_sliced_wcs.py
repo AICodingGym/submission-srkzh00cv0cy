@@ -846,6 +846,50 @@ def test_dropped_dimensions():
     assert wao_classes['celestial'][2]['unit'] is u.deg
 
 
+def test_world_to_pixel_coupled_spectral_and_spatial():
+    """
+    Regression test for SlicedLowLevelWCS.world_to_pixel_values when the
+    PC matrix couples the spectral axis to a spatial axis.
+    See https://github.com/astropy/astropy/issues/13579
+    """
+    import astropy.wcs.utils
+    from astropy.wcs.wcsapi import HighLevelWCSWrapper
+
+    nx, ny = 100, 25
+    wcs_header = {
+        'WCSAXES': 3,
+        'CRPIX1': (nx + 1) / 2,
+        'CRPIX2': (ny + 1) / 2,
+        'CRPIX3': 1.0,
+        'PC1_1': 0.0, 'PC1_2': -1.0, 'PC1_3': 0.0,
+        'PC2_1': 1.0, 'PC2_2':  0.0, 'PC2_3': -1.0,
+        'PC3_1': 0.0, 'PC3_2':  0.0, 'PC3_3':  1.0,
+        'CDELT1': 5,   'CDELT2': 5,   'CDELT3': 0.055,
+        'CUNIT1': 'arcsec', 'CUNIT2': 'arcsec', 'CUNIT3': 'Angstrom',
+        'CTYPE1': 'HPLN-TAN', 'CTYPE2': 'HPLT-TAN', 'CTYPE3': 'WAVE',
+        'CRVAL1': 0.0, 'CRVAL2': 0.0, 'CRVAL3': 1.05,
+    }
+    fits_wcs = WCS(header=wcs_header)
+
+    # Full WCS: sky centre + CRVAL wavelength should give centre spatial pixel
+    # and first wavelength pixel.
+    pt = SkyCoord(Tx=0*u.arcsec, Ty=0*u.arcsec,
+                  frame=astropy.wcs.utils.wcs_to_celestial_frame(fits_wcs))
+    px_full, py_full, pz_full = fits_wcs.world_to_pixel(pt, 1.05*u.Angstrom)
+    assert_allclose(px_full, 49.5)
+    assert_allclose(py_full, 12.0)
+    assert_allclose(pz_full, 0.0, atol=1e-10)
+
+    # Sliced WCS fixing wavelength at pixel 0.  The same sky coordinate must
+    # round-trip back to the same spatial pixels as the full WCS.
+    ll_sliced = SlicedLowLevelWCS(fits_wcs, 0)
+    hl_sliced = HighLevelWCSWrapper(ll_sliced)
+    px_sliced, py_sliced = hl_sliced.world_to_pixel(pt)
+
+    assert_allclose(px_sliced, 49.5)
+    assert_allclose(py_sliced, 12.0)
+
+
 def test_dropped_dimensions_4d(cube_4d_fitswcs):
 
     sub = SlicedLowLevelWCS(cube_4d_fitswcs, np.s_[:, 12, 5, 5])
