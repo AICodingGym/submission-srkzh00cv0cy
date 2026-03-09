@@ -2880,8 +2880,8 @@ class IndexVariable(Variable):
         return self.to_index().equals(other.to_index())
 
     def to_index_variable(self):
-        """Return this variable as an xarray.IndexVariable"""
-        return self
+        """Return this variable as an xarray.IndexVariable (always a copy)"""
+        return self.copy(deep=False)
 
     to_coord = utils.alias(to_index_variable, "to_coord")
 
