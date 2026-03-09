@@ -3772,11 +3772,14 @@ class Dataset(
         for k, v in self.variables.items():
             dims = tuple(dims_dict.get(dim, dim) for dim in v.dims)
             if k in result_dims:
-                # Always copy before mutating dims to avoid in-place mutation
+                # Copy before mutating dims to avoid in-place mutation
                 var = v.to_index_variable()
-                if var is v:
+                if getattr(var, 'dims', None) == dims:
+                    # Already has correct dims, no mutation needed
+                    pass
+                else:
                     var = var.copy(deep=False)
-                var.dims = dims
+                    var.dims = dims
                 if k in self._indexes:
                     indexes[k] = self._indexes[k]
                     variables[k] = var
@@ -3787,7 +3790,9 @@ class Dataset(
                     coord_names.update(index_vars)
             else:
                 var = v.to_base_variable()
-                var.dims = dims
+                if getattr(var, 'dims', None) != dims:
+                    var = var.copy(deep=False)
+                    var.dims = dims
                 variables[k] = var
 
         return self._replace_with_new_dims(variables, coord_names, indexes=indexes)
