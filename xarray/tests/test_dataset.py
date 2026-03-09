@@ -1,3 +1,27 @@
+def test_swap_dims_does_not_mutate_original():
+    import numpy as np
+    import xarray as xr
+
+    nz = 11
+    ds = xr.Dataset(
+        data_vars={
+            "y": ("z", np.random.rand(nz)),
+            "lev": ("z", np.arange(nz) * 10),
+        },
+    )
+    ds2 = (
+        ds.swap_dims(z="lev")
+        .rename_dims(lev="z")
+        .reset_index("lev")
+        .reset_coords()
+    )
+    lev_var_before = ds2["lev"].variable
+    dims_before = lev_var_before.dims
+    ds2_swapped = ds2.swap_dims(z="lev")
+    # The variable object should not be mutated in-place
+    assert ds2["lev"].variable.dims == dims_before
+    # The swapped dataset should have the expected dims
+    assert ds2_swapped["lev"].variable.dims == ("lev",)
 from __future__ import annotations
 
 import pickle
