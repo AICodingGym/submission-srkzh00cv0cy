@@ -25,6 +25,10 @@ class EmptyPage(InvalidPage):
 
 
 class Paginator:
+    def __iter__(self):
+        """Iterate over all Page objects in this Paginator."""
+        for page_num in self.page_range:
+            yield self.page(page_num)
 
     def __init__(self, object_list, per_page, orphans=0,
                  allow_empty_first_page=True):
